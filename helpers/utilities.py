@@ -56,52 +56,57 @@ def run_kfold_experiment(X_train, y_train, activation='sigmoid', use_dropout=Fal
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    best_model = None
-    max_val_acc = 0
     fold_no = 1
 
     for train, val in kf.split(X_train, y_train):
-        # Create model using the parameters passed to the experiment
+
+        print(f"\nTraining Fold {fold_no} for "
+              f"{activation}{' + dropout' if use_dropout else ''} Model...")
+
+        # Create model
         model = create_model(activation_func=activation, use_dropout=use_dropout)
 
-        #print(f'Training Fold {fold_no} for {activation} Model...')
-        print(f"Training Fold {fold_no} for {activation}{' dropout' if use_dropout else ''} Model...")
+        # Train the model
+        history = model.fit(
+            X_train[train], y_train[train],
+            epochs=10,
+            batch_size=1000,
+            validation_data=(X_train[val], y_train[val]),
+            verbose=0
+        )
 
-      # 6. Train the Model
-      # Epochs=10: The model sees the whole dataset 10 times.
-      # Batch_size=1000: We update weights after every 1000 images.
-        history = model.fit(X_train[train], y_train[train],
-                            epochs=10,
-                            batch_size=1000,
-                            validation_data=(X_train[val], y_train[val]),
-                            verbose=0)
-
-        # 1. Save epoch-by-epoch history for the "Ribbon" plots
+        # Store full history (for plotting later)
         all_fold_train_acc.append(history.history['accuracy'])
         all_fold_val_acc.append(history.history['val_accuracy'])
         all_fold_train_loss.append(history.history['loss'])
         all_fold_val_loss.append(history.history['val_loss'])
 
-        # 2. Save final evaluation scores for the numeric summary
-        scores = model.evaluate(X_train[val], y_train[val], verbose=0)
-        #current_val_acc = scores[1]
-        acc_per_fold.append(scores[1] * 100)
-        loss_per_fold.append(scores[0])
+        # Get final epoch metrics
+        final_train_acc = history.history['accuracy'][-1]
+        final_val_acc = history.history['val_accuracy'][-1]
+        final_train_loss = history.history['loss'][-1]
+        final_val_loss = history.history['val_loss'][-1]
 
-        # Track the best model based on validation accuracy
-        """
-        if current_val_acc > max_val_acc:
-            max_val_acc = current_val_acc
-            best_model = model
-            print(f"--> New Best Model found in Fold {fold_no} with Accuracy: {max_val_acc*100:.2f}%")
-        """
-        print(f'Score for fold {fold_no}: Loss of {scores[0]}; Accuracy of {scores[1]*100}%')
+        # Store validation metrics for summary
+        acc_per_fold.append(final_val_acc * 100)
+        loss_per_fold.append(final_val_loss)
 
+        # Print fold results
+        print(f"Fold {fold_no} Results:")
+        print(f"  Train Loss: {final_train_loss:.4f}")
+        print(f"  Train Accuracy: {final_train_acc*100:.2f}%")
+        print(f"  Validation Loss: {final_val_loss:.4f}")
+        print(f"  Validation Accuracy: {final_val_acc*100:.2f}%")
 
         fold_no += 1
 
+    # Print final K-Fold summary
+    print("\n==== K-FOLD CROSS VALIDATION RESULTS ====")
+    print(f"Average Validation Accuracy: {np.mean(acc_per_fold):.2f}% "
+          f"(+/- {np.std(acc_per_fold):.2f})")
+    print(f"Average Validation Loss: {np.mean(loss_per_fold):.4f}")
+
     return {
-        #"model": best_model,
         "train_acc": all_fold_train_acc,
         "val_acc": all_fold_val_acc,
         "train_loss": all_fold_train_loss,
