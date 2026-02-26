@@ -43,7 +43,7 @@ def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
     return model
 
 
-def run_kfold_experiment(activation='sigmoid', use_dropout=False):
+def run_kfold_experiment(X_train, y_train, activation='sigmoid', use_dropout=False):
     # Lists to store the history of each fold
     all_fold_train_acc = []
     all_fold_val_acc = []
