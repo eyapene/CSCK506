@@ -319,3 +319,133 @@ def plot_model_predictions(model, images, labels, class_names, title="Model Pred
     plt.tight_layout()
     plt.suptitle(title, fontsize=16, y=1.02)
     plt.show()
+
+def kfold_grid_search(X_train, y_train,
+                      activation_func='relu',
+                      use_dropout=False,
+                      param_grid=None,
+                      epochs=10,
+                      batch_size=1000,
+                      n_splits=5,
+                      verbose=0):
+
+    if param_grid is None:
+        param_grid = {
+            "learning_rate": [0.01, 0.05],
+            "momentum": [0.8, 0.9],
+            "layer1_units": [512, 256],
+            "layer2_units": [256, 128],
+            "dropout_rate": [0.2] if use_dropout else [0.0]
+        }
+
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    best_score = 0
+    best_params = None
+
+    # Grid search loops
+    for lr in param_grid["learning_rate"]:
+        for mom in param_grid["momentum"]:
+            for l1 in param_grid["layer1_units"]:
+                for l2 in param_grid["layer2_units"]:
+                    for dr in param_grid["dropout_rate"]:
+
+                        fold_accuracies = []
+
+                        for train_index, val_index in kf.split(X_train):
+
+                            X_tr, X_val = X_train[train_index], X_train[val_index]
+                            y_tr, y_val = y_train[train_index], y_train[val_index]
+
+                            # Create fresh model
+                            model = Sequential()
+                            model.add(Dense(l1, activation=activation_func, input_shape=(784,)))
+                            if use_dropout:
+                                model.add(Dropout(dr))
+
+                            model.add(Dense(l2, activation=activation_func))
+                            if use_dropout:
+                                model.add(Dropout(dr))
+
+                            model.add(Dense(10, activation='softmax'))
+
+                            optimizer = SGD(learning_rate=lr, momentum=mom)
+
+                            model.compile(
+                                optimizer=optimizer,
+                                loss=CategoricalCrossentropy(),
+                                metrics=['accuracy']
+                            )
+
+                            history = model.fit(
+                                X_tr, y_tr,
+                                epochs=epochs,
+                                batch_size=batch_size,
+                                verbose=verbose
+                            )
+
+                            val_loss, val_acc = model.evaluate(X_val, y_val, verbose=0)
+                            fold_accuracies.append(val_acc)
+
+                        mean_acc = np.mean(fold_accuracies)
+
+                        print(f"LR={lr}, MOM={mom}, L1={l1}, L2={l2}, DR={dr} → CV Acc={mean_acc:.4f}")
+
+                        if mean_acc > best_score:
+                            best_score = mean_acc
+                            best_params = {
+                                "learning_rate": lr,
+                                "momentum": mom,
+                                "layer1_units": l1,
+                                "layer2_units": l2,
+                                "dropout_rate": dr
+                            }
+
+    print("\nBest Parameters:", best_params)
+    print("Best CV Accuracy:", best_score)
+
+    return best_params, best_score
+
+def train_final_model(X_train, y_train, X_test, y_test,
+                      activation_func,
+                      best_params,
+                      use_dropout=False,
+                      epochs=10,
+                      batch_size=1000):
+
+    model = Sequential()
+    model.add(Dense(best_params["layer1_units"],
+                    activation=activation_func,
+                    input_shape=(784,)))
+
+    if use_dropout:
+        model.add(Dropout(best_params["dropout_rate"]))
+
+    model.add(Dense(best_params["layer2_units"],
+                    activation=activation_func))
+
+    if use_dropout:
+        model.add(Dropout(best_params["dropout_rate"]))
+
+    model.add(Dense(10, activation='softmax'))
+
+    optimizer = SGD(
+        learning_rate=best_params["learning_rate"],
+        momentum=best_params["momentum"]
+    )
+
+    model.compile(
+        optimizer=optimizer,
+        loss=CategoricalCrossentropy(),
+        metrics=['accuracy']
+    )
+
+    history = model.fit(
+        X_train, y_train,
+        epochs=epochs,
+        batch_size=batch_size,
+        validation_data=(X_test, y_test),
+        verbose=1
+    )
+
+    return model, history
