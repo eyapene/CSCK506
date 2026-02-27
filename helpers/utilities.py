@@ -33,7 +33,7 @@ def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
     # 5. Compile the Model
     # Optimizer: SGD (Stochastic Gradient Descent) updates weights based on the gradient.
     # Loss: 'categorical_crossentropy' measures the "distance" between the predicted and true label.
-    optimizer = SGD(learning_rate=0.05, momentum=0.9)
+    optimizer = SGD(learning_rate=0.05, momentum=0.5)
     #optimizer = SGD(learning_rate=0.01)
 
     # 6. Model compilation
