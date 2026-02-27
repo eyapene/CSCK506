@@ -331,11 +331,11 @@ def kfold_grid_search(X_train, y_train,
 
     if param_grid is None:
         param_grid = {
-            "learning_rate": [0.01, 0.05],
-            "momentum": [0.8, 0.9],
-            "layer1_units": [512, 256],
-            "layer2_units": [256, 128],
-            "dropout_rate": [0.2] if use_dropout else [0.0]
+            "learning_rate": [0.05, 0.07],
+            "momentum": [0.9, 1.0],
+            "layer1_units": [512],
+            "layer2_units": [256],
+            "dropout_rate": [0.2, 0.3] if use_dropout else [0.0]
         }
 
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
