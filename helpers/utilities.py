@@ -92,11 +92,14 @@ def run_kfold_experiment(X_train, y_train, activation='sigmoid', use_dropout=Fal
         loss_per_fold.append(final_val_loss)
 
         # Print fold results
+        """
         print(f"Fold {fold_no} Results:")
         print(f"  Train Loss: {final_train_loss:.4f}")
         print(f"  Train Accuracy: {final_train_acc*100:.2f}%")
         print(f"  Validation Loss: {final_val_loss:.4f}")
         print(f"  Validation Accuracy: {final_val_acc*100:.2f}%")
+        """
+        print(f'Score for fold {fold_no}: Train Loss: {final_train_loss:.4f}; Train Accuracy: {final_train_acc*100:.2f}%; Validation Loss: {final_val_loss:.4f}; Validation Accuracy: {final_val_acc*100:.2f}%')
 
         fold_no += 1
 
