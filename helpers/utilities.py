@@ -223,9 +223,9 @@ def plot_final_metrics(history):
     # -----------------------
     summary_data = [
         ["Train Accuracy (avg ± std)",
-         f"{train_acc.mean()*100:.2f}% ± {train_acc.std():.2f}"],
+         f"{train_acc.mean()*100:.2f}% ± {train_acc.std()*100:.2f}"],
         ["Test Accuracy (avg ± std)",
-         f"{test_acc.mean()*100:.2f}% ± {test_acc.std():.2f}"],
+         f"{test_acc.mean()*100:.2f}% ± {test_acc.std()*100:.2f}"],
         ["Train Loss (avg)",
          f"{train_loss.mean():.4f}"],
         ["Test Loss (avg)",
