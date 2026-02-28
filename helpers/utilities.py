@@ -14,13 +14,13 @@ def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
     # 2. First Hidden Layer
     # We use 512 neurons. 'input_shape=(784,)' matches our flattened 28x28 images.
     # Sigmoid: σ(x) = 1 / (1 + exp(-x)). It squashes values between 0 and 1.
-    model.add(Dense(1024, activation=activation_func, input_shape=(784,)))
+    model.add(Dense(512, activation=activation_func, input_shape=(784,)))
     if use_dropout:
         model.add(Dropout(rate))
 
     # 3. Second Hidden Layer
-    # Another dense layer to extract higher-level combinations of the first layer's features.
-    model.add(Dense(512, activation=activation_func))
+    # Another dense layer to extract higher-level combinations of the first layer's features.  We use 256 neurons
+    model.add(Dense(256, activation=activation_func))
     if use_dropout:
         model.add(Dropout(rate))
 
