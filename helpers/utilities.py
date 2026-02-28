@@ -12,14 +12,14 @@ def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
     model = Sequential()
 
     # 2. First Hidden Layer
-    # We use 512 neurons. 'input_shape=(784,)' matches our flattened 28x28 images.
+    # We use 256 neurons. 'input_shape=(784,)' matches our flattened 28x28 images.
     # Sigmoid: σ(x) = 1 / (1 + exp(-x)). It squashes values between 0 and 1.
     model.add(Dense(256, activation=activation_func, input_shape=(784,)))
     if use_dropout:
         model.add(Dropout(rate))
 
     # 3. Second Hidden Layer
-    # Another dense layer to extract higher-level combinations of the first layer's features.  We use 256 neurons
+    # Another dense layer to extract higher-level combinations of the first layer's features.  We use 128 neurons
     model.add(Dense(128, activation=activation_func))
     if use_dropout:
         model.add(Dropout(rate))
@@ -329,26 +329,38 @@ def kfold_grid_search(X_train, y_train,
                       n_splits=5,
                       verbose=0):
 
+    # Force user to provide param_grid
     if param_grid is None:
-        param_grid = {
-            "learning_rate": [0.03, 0.07],
-            "momentum": [0.8, 1.0],
-            "layer1_units": [512],
-            "layer2_units": [256],
-            "dropout_rate": [0.1, 0.3] if use_dropout else [0.0]
-        }
+        print("Error: You must provide a param_grid dictionary.")
+        print("Example:")
+        print("""
+            param_grid = {
+                "learning_rate": [0.03, 0.07],
+                "momentum": [0.8, 1.0],
+                "layer1_units": [512],
+                "layer2_units": [256],
+                "dropout_rate": [0.1, 0.3]  # Only if use_dropout=True
+            }
+        """)
+        return None, None
+
+    # Validate dropout configuration
+    if use_dropout and "dropout_rate" not in param_grid:
+        print("Error: 'dropout_rate' must be provided in param_grid when use_dropout=True.")
+        return None, None
 
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 
     best_score = 0
     best_params = None
 
-    # Grid search loops
+    dropout_values = param_grid["dropout_rate"] if use_dropout else [None]
+
     for lr in param_grid["learning_rate"]:
         for mom in param_grid["momentum"]:
             for l1 in param_grid["layer1_units"]:
                 for l2 in param_grid["layer2_units"]:
-                    for dr in param_grid["dropout_rate"]:
+                    for dr in dropout_values:
 
                         fold_accuracies = []
 
@@ -357,13 +369,14 @@ def kfold_grid_search(X_train, y_train,
                             X_tr, X_val = X_train[train_index], X_train[val_index]
                             y_tr, y_val = y_train[train_index], y_train[val_index]
 
-                            # Create fresh model
                             model = Sequential()
                             model.add(Dense(l1, activation=activation_func, input_shape=(784,)))
+
                             if use_dropout:
                                 model.add(Dropout(dr))
 
                             model.add(Dense(l2, activation=activation_func))
+
                             if use_dropout:
                                 model.add(Dropout(dr))
 
@@ -377,19 +390,23 @@ def kfold_grid_search(X_train, y_train,
                                 metrics=['accuracy']
                             )
 
-                            history = model.fit(
+                            model.fit(
                                 X_tr, y_tr,
                                 epochs=epochs,
                                 batch_size=batch_size,
                                 verbose=verbose
                             )
 
-                            val_loss, val_acc = model.evaluate(X_val, y_val, verbose=0)
+                            _, val_acc = model.evaluate(X_val, y_val, verbose=0)
                             fold_accuracies.append(val_acc)
 
                         mean_acc = np.mean(fold_accuracies)
 
-                        print(f"LR={lr}, MOM={mom}, L1={l1}, L2={l2}, DR={dr} → CV Acc={mean_acc:.4f}")
+                        print(
+                            f"LR={lr}, MOM={mom}, L1={l1}, L2={l2}"
+                            f"{f', DR={dr}' if use_dropout else ''} "
+                            f"→ CV Acc={mean_acc:.4f}"
+                        )
 
                         if mean_acc > best_score:
                             best_score = mean_acc
@@ -397,9 +414,11 @@ def kfold_grid_search(X_train, y_train,
                                 "learning_rate": lr,
                                 "momentum": mom,
                                 "layer1_units": l1,
-                                "layer2_units": l2,
-                                "dropout_rate": dr
+                                "layer2_units": l2
                             }
+
+                            if use_dropout:
+                                best_params["dropout_rate"] = dr
 
     print("\nBest Parameters:", best_params)
     print("Best CV Accuracy:", best_score)
