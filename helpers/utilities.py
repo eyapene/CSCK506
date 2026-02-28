@@ -331,7 +331,7 @@ def kfold_grid_search(X_train, y_train,
 
     # Force user to provide param_grid
     if param_grid is None:
-        print("Error: You must provide a param_grid dictionary.")
+        print("Warning: You must provide a param_grid dictionary.")
         print("Example:")
         print("""
             param_grid = {
@@ -346,7 +346,7 @@ def kfold_grid_search(X_train, y_train,
 
     # Validate dropout configuration
     if use_dropout and "dropout_rate" not in param_grid:
-        print("Error: 'dropout_rate' must be provided in param_grid when use_dropout=True.")
+        print("Warning: 'dropout_rate' must be provided in param_grid when use_dropout=True.")
         return None, None
 
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
