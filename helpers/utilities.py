@@ -338,8 +338,8 @@ def kfold_grid_search(X_train, y_train,
             param_grid = {
                 "learning_rate": [0.03, 0.07],
                 "momentum": [0.8, 1.0],
-                "layer1_units": [512],
-                "layer2_units": [256],
+                "first_layer": [512],
+                "second_layer": [256],
                 "dropout_rate": [0.1, 0.3]  # Only if use_dropout=True
             }
         """)
@@ -359,8 +359,8 @@ def kfold_grid_search(X_train, y_train,
 
     for lr in param_grid["learning_rate"]:
         for mom in param_grid["momentum"]:
-            for l1 in param_grid["layer1_units"]:
-                for l2 in param_grid["layer2_units"]:
+            for l1 in param_grid["first_layer"]:
+                for l2 in param_grid["second_layer"]:
                     for dr in dropout_values:
 
                         fold_accuracies = []
@@ -405,9 +405,9 @@ def kfold_grid_search(X_train, y_train,
                         mean_acc = np.mean(fold_accuracies)
 
                         print(
-                            f"LR={lr}, MOM={mom}, L1={l1}, L2={l2}"
-                            f"{f', DR={dr}' if use_dropout else ''} "
-                            f"→ CV Acc={mean_acc:.4f}"
+                            f"Learning Rate={lr}, Momentum={mom}, First Layer={l1}, Second Layer={l2}"
+                            f"{f', Dropout Rate={dr}' if use_dropout else ''} "
+                            f"→ Cross Validation Accuracy={mean_acc:.4f}"
                         )
 
                         if mean_acc > best_score:
@@ -415,15 +415,15 @@ def kfold_grid_search(X_train, y_train,
                             best_params = {
                                 "learning_rate": lr,
                                 "momentum": mom,
-                                "layer1_units": l1,
-                                "layer2_units": l2
+                                "first_layer": l1,
+                                "second_layer": l2
                             }
 
                             if use_dropout:
                                 best_params["dropout_rate"] = dr
 
     print("\nBest Parameters:", best_params)
-    print("Best CV Accuracy:", best_score)
+    print(f"Best Cross Validation Accuracy: {best_score:.4f}")
 
     return best_params, best_score
 
@@ -435,14 +435,14 @@ def train_final_model(X_train, y_train, X_test, y_test,
                       batch_size=1000):
 
     model = Sequential()
-    model.add(Dense(best_params["layer1_units"],
+    model.add(Dense(best_params["first_layer"],
                     activation=activation_func,
                     input_shape=(784,)))
 
     if use_dropout:
         model.add(Dropout(best_params["dropout_rate"]))
 
-    model.add(Dense(best_params["layer2_units"],
+    model.add(Dense(best_params["second_layer"],
                     activation=activation_func))
 
     if use_dropout:
