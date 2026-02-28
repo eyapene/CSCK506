@@ -68,6 +68,7 @@ def run_kfold_experiment(X_train, y_train, activation='sigmoid', use_dropout=Fal
         # Train the model
         history = model.fit(
             X_train[train], y_train[train],
+            shuffle=False,
             epochs=10,
             batch_size=1000,
             validation_data=(X_train[val], y_train[val]),
@@ -192,6 +193,7 @@ def train_test_model(X_train, y_train, X_test, y_test,
     # Train model
     history = model.fit(
         X_train, y_train,
+        shuffle=False,
         epochs=epochs,
         batch_size=batch_size,
         validation_data=(X_test, y_test),
@@ -391,6 +393,7 @@ def kfold_grid_search(X_train, y_train,
 
                             model.fit(
                                 X_tr, y_tr,
+                                shuffle=False,
                                 epochs=epochs,
                                 batch_size=batch_size,
                                 verbose=verbose
@@ -460,6 +463,7 @@ def train_final_model(X_train, y_train, X_test, y_test,
 
     history = model.fit(
         X_train, y_train,
+        shuffle=False,
         epochs=epochs,
         batch_size=batch_size,
         validation_data=(X_test, y_test),
