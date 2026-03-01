@@ -467,3 +467,107 @@ def train_final_model(X_train, y_train, X_test, y_test,
     )
 
     return model, history
+
+
+def extract_metrics(history, model_name=None):
+    hist = history.history
+
+    train_loss = np.array(hist['loss'])
+    test_loss = np.array(hist['val_loss'])
+    train_acc = np.array(hist['accuracy'])
+    test_acc = np.array(hist['val_accuracy'])
+
+    return {
+        "Model": model_name,
+        "train_loss": train_loss,
+        "test_loss": test_loss,
+        "train_acc": train_acc,
+        "test_acc": test_acc,
+        "train_acc_avg": train_acc.mean() * 100,
+        "train_acc_std": train_acc.std() * 100,
+        "test_acc_avg": test_acc.mean() * 100,
+        "test_acc_std": test_acc.std() * 100,
+        "train_loss_avg": train_loss.mean(),
+        "test_loss_avg": test_loss.mean(),
+    }
+
+
+def plot_model_comparison(results, title=""):
+    """
+    Clean stakeholder-ready summary table.
+    No ranking. No delta columns.
+    Only formatted averages.
+    """
+
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    # Convert to DataFrame
+    df = pd.DataFrame(results)
+
+    # Keep only needed metrics
+    df = df[[
+        "Model",
+        "test_acc_avg",
+        "test_acc_std",
+        "test_loss_avg",
+        "train_acc_avg",
+        "train_acc_std",
+        "train_loss_avg"
+    ]].copy()
+
+    # -----------------------------
+    # Format for presentation
+    # -----------------------------
+    df["Test Accuracy (Avg)"] = (
+        df["test_acc_avg"].round(2).astype(str)
+        + "% ± "
+        + df["test_acc_std"].round(2).astype(str)
+    )
+
+    df["Test Loss (Avg)"] = df["test_loss_avg"].round(4)
+
+    df["Avg Train Accuracy"] = (
+        df["train_acc_avg"].round(2).astype(str)
+        + "% ± "
+        + df["train_acc_std"].round(2).astype(str)
+    )
+
+    df["Avg Train Loss"] = df["train_loss_avg"].round(4)
+
+    # Final layout
+    df_final = df[[
+        "Model",
+        "Test Accuracy (Avg)",
+        "Test Loss (Avg)",
+        "Avg Train Accuracy",
+        "Avg Train Loss"
+    ]]
+
+    # -----------------------------
+    # Plot Table
+    # -----------------------------
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.axis('off')
+
+    table = ax.table(
+        cellText=df_final.values,
+        colLabels=df_final.columns,
+        cellLoc='center',
+        loc='center'
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1, 1.6)
+
+    # Bold header row
+    for (row, col), cell in table.get_celld().items():
+        if row == 0:
+            cell.set_text_props(weight='bold')
+
+    plt.title(title, fontsize=14, weight='bold')
+    plt.tight_layout()
+    plt.show()
+
+    return df_final 
