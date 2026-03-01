@@ -204,7 +204,7 @@ def train_test_model(X_train, y_train, X_test, y_test,
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_final_metrics(history):
+def plot_final_metrics_old(history):
     """
     Plots training history side-by-side and adds a summary table
     inside the figure.
@@ -491,6 +491,84 @@ def extract_metrics(history, model_name=None):
         "test_loss_avg": test_loss.mean(),
     }
 
+def plot_final_metrics(history, model_name="Model"):
+    """
+    Plots training history and uses extract_metrics()
+    to generate the summary table.
+    """
+
+    metrics = extract_metrics(history, model_name)
+
+    train_loss = metrics["train_loss"]
+    test_loss = metrics["test_loss"]
+    train_acc = metrics["train_acc"]
+    test_acc = metrics["test_acc"]
+
+    # -----------------------
+    # Create Figure Layout
+    # -----------------------
+    fig = plt.figure(figsize=(14, 8))
+    gs = fig.add_gridspec(2, 2, height_ratios=[3, 1])
+
+    ax_loss = fig.add_subplot(gs[0, 0])
+    ax_acc = fig.add_subplot(gs[0, 1])
+    ax_table = fig.add_subplot(gs[1, :])
+
+    # -----------------------
+    # Loss Plot
+    # -----------------------
+    ax_loss.plot(train_loss, label='Train Loss')
+    ax_loss.plot(test_loss, label='Test Loss')
+    ax_loss.set_title(f'{model_name} - Model Loss')
+    ax_loss.set_xlabel('Epoch')
+    ax_loss.set_ylabel('Cross-Entropy Loss')
+    ax_loss.legend()
+
+    # -----------------------
+    # Accuracy Plot
+    # -----------------------
+    ax_acc.plot(train_acc, label='Train Accuracy')
+    ax_acc.plot(test_acc, label='Test Accuracy')
+    ax_acc.set_title(f'{model_name} - Model Accuracy')
+    ax_acc.set_xlabel('Epoch')
+    ax_acc.set_ylabel('Accuracy')
+    ax_acc.legend()
+
+    # -----------------------
+    # Summary Table
+    # -----------------------
+    summary_data = [
+        ["Train Accuracy (avg ± std)",
+         f"{metrics['train_acc_avg']:.2f}% ± {metrics['train_acc_std']:.2f}%"],
+        ["Test Accuracy (avg ± std)",
+         f"{metrics['test_acc_avg']:.2f}% ± {metrics['test_acc_std']:.2f}%"],
+        ["Train Loss (avg)",
+         f"{metrics['train_loss_avg']:.4f}"],
+        ["Test Loss (avg)",
+         f"{metrics['test_loss_avg']:.4f}"]
+    ]
+
+    ax_table.axis('off')
+
+    table = ax_table.table(
+        cellText=summary_data,
+        colLabels=["Metric", "Value"],
+        cellLoc='center',
+        loc='center'
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1, 1.5)
+
+    for (row, col), cell in table.get_celld().items():
+        if row == 0:
+            cell.set_text_props(weight='bold')
+
+    plt.tight_layout()
+    plt.show()
+
+    return metrics
 
 def plot_model_comparison(results, title=""):
     """
