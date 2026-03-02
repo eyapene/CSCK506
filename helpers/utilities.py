@@ -4,25 +4,39 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import CategoricalCrossentropy
+import matplotlib.pyplot as plt
 
-def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
+def create_model(input_dim,
+                 first_layer=256,
+                 second_layer=128,
+                 activation_func='relu',
+                 learning_rate=0.01,
+                 momentum=0.5,
+                 use_dropout=False,
+                 dropout_rate=0.2):
 
     # 1. Initialize the Sequential model
     # This is a linear stack of layers where each layer has exactly one input tensor and one output tensor.
     model = Sequential()
 
     # 2. First Hidden Layer
-    # We use 256 neurons. 'input_shape=(784,)' matches our flattened 28x28 images.
+    # Default: 256 neurons. 'input_shape=(784,)' matches our flattened 28x28 images.
     # Sigmoid: σ(x) = 1 / (1 + exp(-x)). It squashes values between 0 and 1.
-    model.add(Dense(256, activation=activation_func, input_shape=(784,)))
+    model.add(Dense(first_layer,
+                    activation=activation_func,
+                    input_shape=(input_dim,)))
+
     if use_dropout:
-        model.add(Dropout(rate))
+        model.add(Dropout(dropout_rate))
 
     # 3. Second Hidden Layer
-    # Another dense layer to extract higher-level combinations of the first layer's features.  We use 128 neurons
-    model.add(Dense(128, activation=activation_func))
+    # Default: 128 neurons
+    # Another dense layer to extract higher-level combinations of the first layer's features.
+    model.add(Dense(second_layer,
+                    activation=activation_func))
+
     if use_dropout:
-        model.add(Dropout(rate))
+        model.add(Dropout(dropout_rate))
 
     # 4. Output Layer
     # 10 neurons (one for each Fashion MNIST class).
@@ -33,90 +47,19 @@ def create_model(activation_func='sigmoid', use_dropout=False, rate=0.2):
     # 5. Compile the Model
     # Optimizer: SGD (Stochastic Gradient Descent) updates weights based on the gradient.
     # Loss: 'categorical_crossentropy' measures the "distance" between the predicted and true label.
-    optimizer = SGD(learning_rate=0.05, momentum=0.5)
+    #Default: learning_rate: 0.05, Momentum: 0.5
+    optimizer = SGD(learning_rate=learning_rate,
+                    momentum=momentum)
 
     # 6. Model compilation
-    model.compile(optimizer=optimizer,
-                  loss=CategoricalCrossentropy(),
-                  metrics=['accuracy'])
+    model.compile(
+        optimizer=optimizer,
+        loss=CategoricalCrossentropy(),
+        metrics=['accuracy']
+    )
+
     return model
 
-
-def run_kfold_experiment(X_train, y_train, activation='sigmoid', use_dropout=False):
-    # Lists to store the history of each fold
-    all_fold_train_acc = []
-    all_fold_val_acc = []
-    all_fold_train_loss = []
-    all_fold_val_loss = []
-
-    # Accuracy and Loss scores for the final summary
-    acc_per_fold = []
-    loss_per_fold = []
-
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
-
-    fold_no = 1
-
-    for train, val in kf.split(X_train, y_train):
-
-        print(f"\nTraining Fold {fold_no} for "
-              f"{activation}{' + dropout' if use_dropout else ''} Model...")
-
-        # Create model
-        model = create_model(activation_func=activation, use_dropout=use_dropout)
-
-        # Train the model
-        history = model.fit(
-            X_train[train], y_train[train],
-            epochs=10,
-            batch_size=1000,
-            validation_data=(X_train[val], y_train[val]),
-            verbose=0
-        )
-
-        # Store full history (for plotting later)
-        all_fold_train_acc.append(history.history['accuracy'])
-        all_fold_val_acc.append(history.history['val_accuracy'])
-        all_fold_train_loss.append(history.history['loss'])
-        all_fold_val_loss.append(history.history['val_loss'])
-
-        # Get final epoch metrics
-        final_train_acc = history.history['accuracy'][-1]
-        final_val_acc = history.history['val_accuracy'][-1]
-        final_train_loss = history.history['loss'][-1]
-        final_val_loss = history.history['val_loss'][-1]
-
-        # Store validation metrics for summary
-        acc_per_fold.append(final_val_acc * 100)
-        loss_per_fold.append(final_val_loss)
-
-        # Print fold results
-        """
-        print(f"Fold {fold_no} Results:")
-        print(f"  Train Loss: {final_train_loss:.4f}")
-        print(f"  Train Accuracy: {final_train_acc*100:.2f}%")
-        print(f"  Validation Loss: {final_val_loss:.4f}")
-        print(f"  Validation Accuracy: {final_val_acc*100:.2f}%")
-        """
-        print(f'Train Loss: {final_train_loss:.4f} - Train Accuracy: {final_train_acc*100:.2f}% - Val Loss: {final_val_loss:.4f} - Val Accuracy: {final_val_acc*100:.2f}%')
-
-        fold_no += 1
-
-    # Print final K-Fold summary
-    print("\n==== K-FOLD CROSS VALIDATION RESULTS ====")
-    print(f"Average Validation Accuracy: {np.mean(acc_per_fold):.2f}% "
-          f"(+/- {np.std(acc_per_fold):.2f})")
-    print(f"Average Validation Loss: {np.mean(loss_per_fold):.4f}")
-
-    return {
-        "train_acc": all_fold_train_acc,
-        "val_acc": all_fold_val_acc,
-        "train_loss": all_fold_train_loss,
-        "val_loss": all_fold_val_loss,
-        "avg_acc": np.mean(acc_per_fold),
-        "avg_loss": np.mean(loss_per_fold),
-        "std_acc": np.std(acc_per_fold)
-    }
 
 def plot_kfold_history(train_histories, val_histories, metric_name, model_name):
     # Convert lists to numpy arrays for calculation: Shape (Folds, Epochs)
@@ -148,12 +91,8 @@ def plot_kfold_history(train_histories, val_histories, metric_name, model_name):
     plt.grid(True, alpha=0.3)
     plt.show()
 
-# Execute plotting
-#plot_kfold_history(all_fold_train_acc, all_fold_val_acc, 'Accuracy', 'Sigmoid MLP')
-#plot_kfold_history(all_fold_train_loss, all_fold_val_loss, 'Loss', 'Sigmoid MLP')
 
-
-def train_test_model(X_train, y_train, X_test, y_test,
+def train_baseline_model(X_train, y_train, X_test, y_test,
                 activation_func='sigmoid',
                 use_dropout=False,
                 dropout_rate=0.2,
@@ -194,96 +133,15 @@ def train_test_model(X_train, y_train, X_test, y_test,
         X_train, y_train,
         epochs=epochs,
         batch_size=batch_size,
-        validation_data=(X_test, y_test),
+        #validation_data=(X_test, y_test),
         verbose=verbose
     )
+    # Final evaluation on test set (AFTER training)
+    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=0)
+
+    print(f"\nFinal Test Accuracy: {test_acc:.4f}")
 
     return model, history
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-def plot_final_metrics_old(history):
-    """
-    Plots training history side-by-side and adds a summary table
-    inside the figure.
-    """
-
-    hist = history.history
-
-    train_loss = np.array(hist['loss'])
-    test_loss = np.array(hist['val_loss'])
-    train_acc = np.array(hist['accuracy'])
-    test_acc = np.array(hist['val_accuracy'])
-
-    # -----------------------
-    # Compute Summary Stats
-    # -----------------------
-    summary_data = [
-        ["Train Accuracy (avg ± std)",
-         f"{train_acc.mean()*100:.2f}% ± {train_acc.std()*100:.2f}"],
-        ["Test Accuracy (avg ± std)",
-         f"{test_acc.mean()*100:.2f}% ± {test_acc.std()*100:.2f}"],
-        ["Train Loss (avg)",
-         f"{train_loss.mean():.4f}"],
-        ["Test Loss (avg)",
-         f"{test_loss.mean():.4f}"]
-    ]
-
-    # -----------------------
-    # Create Figure Layout
-    # -----------------------
-    fig = plt.figure(figsize=(14, 8))
-    gs = fig.add_gridspec(2, 2, height_ratios=[3, 1])
-
-    ax_loss = fig.add_subplot(gs[0, 0])
-    ax_acc = fig.add_subplot(gs[0, 1])
-    ax_table = fig.add_subplot(gs[1, :])
-
-    # -----------------------
-    # Loss Plot
-    # -----------------------
-    ax_loss.plot(train_loss, label='Train Loss')
-    ax_loss.plot(test_loss, label='Test Loss')
-    ax_loss.set_title('Model Loss')
-    ax_loss.set_xlabel('Epoch')
-    ax_loss.set_ylabel('Cross-Entropy Loss')
-    ax_loss.legend()
-
-    # -----------------------
-    # Accuracy Plot
-    # -----------------------
-    ax_acc.plot(train_acc, label='Train Accuracy')
-    ax_acc.plot(test_acc, label='Test Accuracy')
-    ax_acc.set_title('Model Accuracy')
-    ax_acc.set_xlabel('Epoch')
-    ax_acc.set_ylabel('Accuracy')
-    ax_acc.legend()
-
-    # -----------------------
-    # Add Table
-    # -----------------------
-    ax_table.axis('off')
-
-    table = ax_table.table(
-        cellText=summary_data,
-        colLabels=["Metric", "Value"],
-        cellLoc='center',
-        loc='center'
-    )
-
-    table.auto_set_font_size(False)
-    table.set_fontsize(11)
-    table.scale(1, 1.5)
-
-    # Make header bold
-    for (row, col), cell in table.get_celld().items():
-        if row == 0:
-            cell.set_text_props(weight='bold')
-
-    plt.tight_layout()
-    plt.show()
 
 def plot_model_predictions(model, images, labels, class_names, title="Model Predictions"):
     """
@@ -328,32 +186,25 @@ def kfold_grid_search(X_train, y_train,
                       n_splits=5,
                       verbose=0):
 
-    # Force user to provide param_grid
     if param_grid is None:
-        print("Warning: You must provide a param_grid dictionary.")
-        print("Example:")
-        print("""
-            param_grid = {
-                "learning_rate": [0.03, 0.07],
-                "momentum": [0.8, 1.0],
-                "first_layer": [512],
-                "second_layer": [256],
-                "dropout_rate": [0.1, 0.3]  # Only if use_dropout=True
-            }
-        """)
-        return None, None
+        raise ValueError("param_grid must be provided.")
 
-    # Validate dropout configuration
     if use_dropout and "dropout_rate" not in param_grid:
-        print("Warning: 'dropout_rate' must be provided in param_grid when use_dropout=True.")
-        return None, None
+        raise ValueError("'dropout_rate' must be provided when use_dropout=True.")
+
+    required_keys = ["learning_rate", "momentum", "first_layer", "second_layer"]
+    for key in required_keys:
+        if key not in param_grid:
+            raise ValueError(f"Missing required param_grid key: {key}")
+
+    input_dim = X_train.shape[1]
 
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 
     best_score = 0
     best_params = None
 
-    dropout_values = param_grid["dropout_rate"] if use_dropout else [None]
+    dropout_values = param_grid["dropout_rate"] if use_dropout else [0.0]
 
     for lr in param_grid["learning_rate"]:
         for mom in param_grid["momentum"]:
@@ -368,25 +219,15 @@ def kfold_grid_search(X_train, y_train,
                             X_tr, X_val = X_train[train_index], X_train[val_index]
                             y_tr, y_val = y_train[train_index], y_train[val_index]
 
-                            model = Sequential()
-                            model.add(Dense(l1, activation=activation_func, input_shape=(784,)))
-
-                            if use_dropout:
-                                model.add(Dropout(dr))
-
-                            model.add(Dense(l2, activation=activation_func))
-
-                            if use_dropout:
-                                model.add(Dropout(dr))
-
-                            model.add(Dense(10, activation='softmax'))
-
-                            optimizer = SGD(learning_rate=lr, momentum=mom)
-
-                            model.compile(
-                                optimizer=optimizer,
-                                loss=CategoricalCrossentropy(),
-                                metrics=['accuracy']
+                            model = create_model(
+                                input_dim=input_dim,
+                                first_layer=l1,
+                                second_layer=l2,
+                                activation_func=activation_func,
+                                learning_rate=lr,
+                                momentum=mom,
+                                use_dropout=use_dropout,
+                                dropout_rate=dr
                             )
 
                             model.fit(
@@ -402,9 +243,9 @@ def kfold_grid_search(X_train, y_train,
                         mean_acc = np.mean(fold_accuracies)
 
                         print(
-                            f"Learning Rate={lr}, Momentum={mom}, First Layer={l1}, Second Layer={l2}"
-                            f"{f', Dropout Rate={dr}' if use_dropout else ''} "
-                            f"→ Cross Validation Accuracy={mean_acc:.4f}"
+                            f"LR={lr}, Mom={mom}, L1={l1}, L2={l2}"
+                            f"{f', Dropout={dr}' if use_dropout else ''}"
+                            f" → CV Acc={mean_acc:.4f}"
                         )
 
                         if mean_acc > best_score:
@@ -424,49 +265,52 @@ def kfold_grid_search(X_train, y_train,
 
     return best_params, best_score
 
-def train_final_model(X_train, y_train, X_test, y_test,
+def train_final_model(X_train, y_train,
+                      X_test, y_test,
                       activation_func,
                       best_params,
                       use_dropout=False,
                       epochs=10,
                       batch_size=1000):
 
-    model = Sequential()
-    model.add(Dense(best_params["first_layer"],
-                    activation=activation_func,
-                    input_shape=(784,)))
+    # Validate required parameters
+    required_keys = ["learning_rate", "momentum",
+                     "first_layer", "second_layer"]
 
-    if use_dropout:
-        model.add(Dropout(best_params["dropout_rate"]))
+    for key in required_keys:
+        if key not in best_params:
+            raise ValueError(f"Missing required best_params key: {key}")
 
-    model.add(Dense(best_params["second_layer"],
-                    activation=activation_func))
+    if use_dropout and "dropout_rate" not in best_params:
+        raise ValueError("dropout_rate missing in best_params while use_dropout=True")
 
-    if use_dropout:
-        model.add(Dropout(best_params["dropout_rate"]))
+    input_dim = X_train.shape[1]
 
-    model.add(Dense(10, activation='softmax'))
-
-    optimizer = SGD(
+    # Reuse create_model
+    model = create_model(
+        input_dim=input_dim,
+        first_layer=best_params["first_layer"],
+        second_layer=best_params["second_layer"],
+        activation_func=activation_func,
         learning_rate=best_params["learning_rate"],
-        momentum=best_params["momentum"]
-    )
-
-    model.compile(
-        optimizer=optimizer,
-        loss=CategoricalCrossentropy(),
-        metrics=['accuracy']
+        momentum=best_params["momentum"],
+        use_dropout=use_dropout,
+        dropout_rate=best_params.get("dropout_rate", 0.0)
     )
 
     history = model.fit(
         X_train, y_train,
         epochs=epochs,
         batch_size=batch_size,
-        validation_data=(X_test, y_test),
         verbose=1
     )
 
-    return model, history
+    # Final evaluation on test set (AFTER training)
+    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=1)
+
+    print(f"\nFinal Test Accuracy: {test_acc:.4f}")
+
+    return model, history, test_acc
 
 
 def extract_metrics(history, model_name=None):
