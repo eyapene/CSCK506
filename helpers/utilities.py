@@ -125,7 +125,7 @@ def train_baseline_model(X_train, y_train, X_test, y_test,
     model = create_model(
         activation_func=activation_func,
         use_dropout=use_dropout,
-        rate=dropout_rate
+        dropout_rate=dropout_rate
     )
 
     # Train model
