@@ -294,9 +294,9 @@ def kfold_grid_search(X_train, y_train,
 
                         # 11. Print current hyperparameter combination and CV accuracy
                         print(
-                            f"LR={lr}, Mom={mom}, L1={l1}, L2={l2}"
-                            f"{f', Dropout={dr}' if use_dropout else ''}"
-                            f" → CV Acc={mean_acc:.4f}"
+                            f"Learning Rate={lr}, Momentum={mom}, First Layer={l1}, Second Layer={l2}"
+                            f"{f', Dropout Rate={dr}' if use_dropout else ''} "
+                            f"→ Cross Validation Accuracy={mean_acc:.4f}"
                         )
 
                         # 12. Update best parameters if current mean accuracy is higher
