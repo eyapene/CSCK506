@@ -380,10 +380,7 @@ def train_tuned_model(X_train, y_train,
         verbose=1
     )
 
-    # 4. Evaluate final accuracy on test set
-    _, test_acc = model.evaluate(X_test, y_test, verbose=0)
-
-    return model, history, test_acc
+    return model, history
 
 
 def extract_metrics(history, model_name=None):
