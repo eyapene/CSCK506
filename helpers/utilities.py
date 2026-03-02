@@ -6,7 +6,7 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import CategoricalCrossentropy
 import matplotlib.pyplot as plt
 
-def create_model(input_dim,
+def create_model(input_dim=784,
                  first_layer=256,
                  second_layer=128,
                  activation_func='relu',
