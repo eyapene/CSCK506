@@ -133,13 +133,9 @@ def train_baseline_model(X_train, y_train, X_test, y_test,
         X_train, y_train,
         epochs=epochs,
         batch_size=batch_size,
-        #validation_data=(X_test, y_test),
+        validation_data=(X_test, y_test),
         verbose=verbose
     )
-    # Final evaluation on test set (AFTER training)
-    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=0)
-
-    print(f"\nFinal Test Accuracy: {test_acc:.4f}")
 
     return model, history
 
@@ -302,13 +298,9 @@ def train_final_model(X_train, y_train,
         X_train, y_train,
         epochs=epochs,
         batch_size=batch_size,
+        validation_data=(X_test, y_test),
         verbose=1
     )
-
-    # Final evaluation on test set (AFTER training)
-    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=1)
-
-    print(f"\nFinal Test Accuracy: {test_acc:.4f}")
 
     return model, history, test_acc
 
